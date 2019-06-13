@@ -14,9 +14,9 @@ def validateEmail(emailaddress):
         return False
     else:
         mysql = connectToMySQL("loginandregistration")
-        query = "SELECT COUNT(*) FROM loginandregistrations where email = %(email)s;"
+        query = "SELECT COUNT(*) as doesExist FROM loginandregistrations where email = %(email)s;"
         data = { "email": emailaddress }
-        if mysql.query_db(query,data) == 0:
+        if (mysql.query_db(query,data)[0]['doesExist'] == 0):
             return True
         else:
             flash("Email already in system", "email")
@@ -80,8 +80,8 @@ def checkEmailInDB(email):
     mysql = connectToMySQL("loginandregistration")
     query = "SELECT * FROM loginandregistrations where email = %(email)s;"
     data = { "email": email}
-    query_check = "SELECT COUNT(*) FROM loginandregistrations where email = %(email)s;"
-    if mysql.query_db(query_check,data) == 0:
+    query_check = "SELECT COUNT(*) as doesExist FROM loginandregistrations where email = %(email)s;"
+    if mysql.query_db(query_check,data)[0]['doesExist'] == 0:
         result = False
     else:
         mysql = connectToMySQL("loginandregistration")
@@ -94,11 +94,24 @@ def index():
     return render_template("index.html")
 
 
-@app.route('/success')
+@app.route('/wall')
 def success():
     if session["isLoggedIn"] == False:
         return redirect("/")
-    return render_template("success.html")
+    else:
+        user = checkEmailInDB(session['email_address'])
+        mysql = connectToMySQL('loginandregistration')
+        query = "SELECT * from messages join loginandregistrations as Sender on messages.sending_user_id = Sender.id join loginandregistrations as SentTo on messages.sent_to_user_id = SentTo.id where sent_to_user_id = %(user_id)s;"
+        data = {
+            "user_id": user[0]['id']
+        }
+        received_messages = mysql.query_db(query,data)
+        if received_messages == False:
+            received_messages = []
+        print("***********")
+        print(received_messages)
+        print("***********")
+    return render_template("success.html", user=user, received_messages=received_messages)
 
 
 @app.route("/register", methods=["POST"])
@@ -134,7 +147,7 @@ def register():
         session["isLoggedIn"] = True
         session["user_id"] = id
         session["email_address"] = request.form["email"]
-        return redirect("/success")
+        return redirect("/wall")
 
 
 @app.route("/login", methods={'POST'})
@@ -152,7 +165,9 @@ def log_in():
                 session["isLoggedIn"] = True
                 session["user_id"] = user[0]['id']
                 session["email_address"] = user[0]['Email']
-                return redirect("/success")
+                return redirect("/wall")
+            else:
+                return redirect("/")
         else:
             return redirect("/")
     else:

@@ -7,14 +7,43 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Document</title>
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+  <style>
+    .horizontal_bar {
+      min-height: 50px;
+      border-bottom: 4px solid black;
+    }
+
+    .vertical_bar {
+      min-width: 50px;
+      border-right: 4px solid black;
+    }
+
+    .ilbl {
+      display: inline-block;
+    }
+  </style>
 </head>
 
 <body>
   <div class="container">
-    <a href="/logout" class="btn btn-outline-warning float-right">Log Out</a>
-    <p>You logged in</p>
-    <p>User id: {{ session['user_id'] }}</p>
-    <p>Email: {{ session['email_address'] }}</p>
+    <div class="horizontal_bar">
+      <p class="float-right">Welcome, {{ user[0].FirstName }}! <a href="/logout" class="btn btn-outline-warning">Log Out</a>
+      </p>
+      <h2 class="float-left">CodingDojo Wall</h2>
+      <input type="hidden" name="user_id" id="user_id" value={{ session['user_id'] }}>
+    </div>
+    <div class="row">
+      <div class="ilbl vertical_bar col-6">
+        <p>Message(s) for You</p>
+        {% for message in received_messages %}
+        <p>{{ message['message'] }}</p>
+        {% endfor %}
+      </div>
+      <div class="ilbl col-6">
+        <p>Send Messages</p>
+      </div>
+    </div>
+
   </div>
 </body>
 
