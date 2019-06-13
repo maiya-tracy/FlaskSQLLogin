@@ -8,42 +8,93 @@
   <title>Document</title>
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
   <style>
-    .horizontal_bar {
-      min-height: 50px;
-      border-bottom: 4px solid black;
+    .border-right {
+      border-width: 3px !important;
     }
 
-    .vertical_bar {
-      min-width: 50px;
-      border-right: 4px solid black;
+    .border-bottom {
+      border-width: 3px !important;
     }
-
-    .ilbl {
-      display: inline-block;
+    .border {
+      margin: 4px auto;
     }
   </style>
 </head>
 
 <body>
   <div class="container">
-    <div class="horizontal_bar">
-      <p class="float-right">Welcome, {{ user[0].FirstName }}! <a href="/logout" class="btn btn-outline-warning">Log Out</a>
-      </p>
-      <h2 class="float-left">CodingDojo Wall</h2>
+    <div class="row border-bottom">
+      <h2 class="col-auto mr-auto">CodingDojo Wall</h2>
+      <div class="mt-1 col-auto">Welcome, {{ user[0].FirstName }}! <a href="/logout" class="btn btn-outline-warning">Log Out</a></div>
       <input type="hidden" name="user_id" id="user_id" value={{ session['user_id'] }}>
     </div>
-    <div class="row">
-      <div class="ilbl vertical_bar col-6">
-        <p>Message(s) for You</p>
+    <div class="row my-3">
+      <div class="border-right col-6">
+        {% set vars = {'numMessages': 0} %}
         {% for message in received_messages %}
-        <p>{{ message['message'] }}</p>
+        {% if vars.update({'numMessages': vars.numMessages + 1}) %}{% endif %}
+        {% endfor %}
+        <p>{{ vars.numMessages }} Message(s) for You</p>
+        {% for message in received_messages %}
+        <div class="row border">
+          <div class="leftSide col-auto mr-auto"
+          {% set timesince = (message['timepassed']|string()).split(':') %}
+          {% if (timesince[0] | int) >= 24 %}
+          {% set disptime = ((timesince[0] / 24)|string) + " days ago" %}
+          {% elif ((timesince[0] | int) < 24 and (timesince[0] | int) > 1) %}
+          {% set disptime = ((timesince[0])|string) + " hours ago" %}
+          {% elif ((timesince[0] | int) == 1) %}
+          {% set disptime = ((timesince[0])|string) + " hour ago" %}
+          {% elif ((timesince[1] | int) > 1) %}
+          {% set disptime = ((timesince[1])|string) + " minutes ago"  %}
+          {% elif ((timesince[1] | int) == 1) %}
+          {% set disptime = ((timesince[1])|string) + " minute ago"  %}
+          {% else: %}
+          {% set disptime = "Just Now" %}
+          {% endif %}
+          <p>{{ message['who_sent_me'] }} said ({{ disptime }}):</p>
+          <p> "{{ message['message'] }}"</p>
+          </div>
+          <form action="/wall/delete" method="POST" class="col-auto mt-4">
+            <input type="hidden" name="message_sent_to_id" value="{{message['sent_to_user_id']}}">
+            <input type="hidden" name="message_id" value="{{message['message_id']}}">
+            <input type="image" style="max-width: 20px;" name="submit" src="../static/trash.jpg" alt="trash">
+          </form>
+        </div>
         {% endfor %}
       </div>
-      <div class="ilbl col-6">
+      <div class="col-6">
         <p>Send Messages</p>
+        <!--New content-->
+
+        {% with messages = get_flashed_messages(category_filter=['message_send']) %}
+        {% if messages %}
+        {%- for message in messages %}
+        <span class=" text-danger">***{{ message }}***</span>
+        {% endfor -%}
+        {% endif %}
+        {% endwith %}
+        <!--end New content-->
+        <!--New content-->
+        <form action="/wall/send" method="POST">
+          <div class="form-group">
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <div class="input-group-text">To:</div>
+              </div>
+              <select name="message_to" id="message_to" class="form-control">
+                {% for user in all_users%}
+                <option value="{{user['id']}}">{{user['FirstName']}}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <textarea class="form-control" name="message_text" id="message" cols="30" rows="10" placeholder="Type your message here..."></textarea>
+          </div>
+          <input type="submit" value="Send" class="btn btn-outline-primary">
+        </form>
+        <!--end New content-->
       </div>
     </div>
-
   </div>
 </body>
 

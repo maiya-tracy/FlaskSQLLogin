@@ -67,7 +67,7 @@
             {% endif %}
             {% endwith %}
             <label for="password">Password:</label>
-            <input type="text" name="password" id="password" class="form-control" placeholder="Password">
+            <input type="password" name="password" id="password" class="form-control" placeholder="Password">
           </div>
           <div class="form-group">
             {% with conpws = get_flashed_messages(category_filter=["confirmpw"]) %}
@@ -80,7 +80,7 @@
             {% endif %}
             {% endwith %}
             <label for="pwconfirm">Confirm Password:</label>
-            <input type="text" name="pwconfirm" id="pwconfirm" class="form-control" placeholder="Confirm Password">
+            <input type="password" name="pwconfirm" id="pwconfirm" class="form-control" placeholder="Confirm Password">
           </div>
           <input type="submit" class="btn btn-outline-success" value="Register">
 
@@ -104,7 +104,7 @@
           </div>
           <div class="form-group">
             <label for="passwordLogin">Password:</label>
-            <input type="text" name="passwordLogin" id="passwordLogin" class="form-control" placeholder="Password">
+            <input type="password" name="passwordLogin" id="passwordLogin" class="form-control" placeholder="Password">
           </div>
           <input type="submit" class="btn btn-outline-success" value="Login">
         </form>

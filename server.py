@@ -1,6 +1,8 @@
 from flask import Flask, render_template, redirect, request, session, flash
 from flask_bcrypt import Bcrypt
 import re
+import socket
+import datetime
 from mysql import connectToMySQL
 app = Flask(__name__)
 bcrypt = Bcrypt(app)
@@ -88,6 +90,23 @@ def checkEmailInDB(email):
         result = mysql.query_db(query,data)
     return result
 
+#This function will bring in a list of all available users to send messages to and list their names alphabtically in a drop down that will allow you to choose any other user to send a message to.
+def allUsersReturn():
+    mysql = connectToMySQL("loginandregistration")
+    query = "SELECT *  FROM loginandregistrations ;"
+    all_users = mysql.query_db(query)
+    return all_users
+
+def get_host_ip():
+    host_name = socket.gethostname()
+    host_ip = socket.gethostbyname(host_name)
+    ip_info = {
+        'ip': host_ip,
+        'comp_name': host_name
+    }
+    print(ip_info)
+    return ip_info
+
 @app.route("/")
 def index():
     session["isLoggedIn"] = False
@@ -101,18 +120,63 @@ def success():
     else:
         user = checkEmailInDB(session['email_address'])
         mysql = connectToMySQL('loginandregistration')
-        query = "SELECT * from messages join loginandregistrations as Sender on messages.sending_user_id = Sender.id join loginandregistrations as SentTo on messages.sent_to_user_id = SentTo.id where sent_to_user_id = %(user_id)s;"
+        query = "SELECT concat(Sender.FirstName, ' ', Sender.LastName) as who_sent_me, messages.id as message_id, messages.sent_to_user_id AS sent_to_user_id, messages.sending_user_id AS sending_user_id, messages.message as message, messages.sent_at AS timestamp, timediff(now(), messages.sent_at) AS timepassed from messages join loginandregistrations as Sender on messages.sending_user_id = Sender.id join loginandregistrations as SentTo on messages.sent_to_user_id = SentTo.id where sent_to_user_id = %(user_id)s;"
         data = {
             "user_id": user[0]['id']
         }
         received_messages = mysql.query_db(query,data)
         if received_messages == False:
             received_messages = []
-        print("***********")
-        print(received_messages)
-        print("***********")
-    return render_template("success.html", user=user, received_messages=received_messages)
+        all_users = allUsersReturn()
+    return render_template("success.html", all_users=all_users, user=user, received_messages=received_messages)
 
+@app.route('/wall/send', methods = ['POST'])
+def send_msg():
+    if len(request.form['message_text']) < 5:
+        flash('Your message must be at least 5 characters long', 'message_send')
+        return redirect('/wall')
+    mysql = connectToMySQL('loginandregistration')
+    query = 'INSERT INTO messages (sending_user_id, sent_to_user_id, message, sent_at) VALUES ( %(sender)s, %(receiver)s, %(message)s, NOW() )'
+    data = {
+        'sender': session['user_id'],
+        'receiver': request.form['message_to'],
+        'message': request.form['message_text']
+    }
+    print(session['user_id'])
+    print(request.form['message_to'])
+    print(request.form['message_text'])
+    mysql.query_db(query, data)
+    return redirect('/wall')
+
+@app.route('/wall/delete', methods=["POST"])
+def delete_msg():
+    mysql = connectToMySQL('loginandregistration')
+    query = "SELECT sent_to_user_id from messages where id = %(message_id)s;"
+    data = {
+        "message_id": request.form['message_id']
+    }
+    # print(mysql.query_db(query,data))
+    # print("*!*!*!**!*!")
+    if mysql.query_db(query,data)[0]['sent_to_user_id'] != str(session['user_id']):
+        return redirect('/terribleperson')
+    else:
+        mysql = connectToMySQL('loginandregistration')
+        queryDelete = "DELETE from messages where id = %(message_id)s;"
+        data = {
+            "message_id": request.form['message_id']
+        }
+    mysql.query_db(queryDelete,data)
+    return redirect('/wall')
+
+@app.route('/terribleperson')
+def terribleperson():
+    ip_info = get_host_ip()
+    if 'hacker' in session:
+        session.clear()
+        return redirect('/')
+    else:
+        session['hacker'] = 1
+        return render_template('terribleperson.html', ip_info = ip_info)
 
 @app.route("/register", methods=["POST"])
 def register():
